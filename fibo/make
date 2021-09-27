@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+	echo "Usage: make <file>  #note: without .s"
+	exit
+fi
+if [ ! -e "$1.s" ]; then
+	echo "File \"$1.s\" not found"
+	exit
+fi
+
+#file=${1%.s}
+#echo "$file"
+out="a.out"
+if [ ! -z $2 ]; then
+	out=$2
+fi	
+
+nasm -f elf64 -o "$1.o" -O2 -g -l "$1.l" "$1.s"
+ld -o "$out" -z noseparate-code --verbose "$1.o"
+
+if [ "strip" = "$3" ]; then
+	strip --strip-all "$out"
+fi

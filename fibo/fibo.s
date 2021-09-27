@@ -55,13 +55,7 @@ Usage:
 	int 80h              ; call the kernel
 
 Exit:
-	; Terminate program -- from example
-	; mov rsp, rbp
-	; pop rbp
-
-	; mine - pc still works :)
 	pop rbp
-	mov rsp, rbp
 
 	mov eax,1            ; 'exit' system call
 	mov ebx,0            ; exit with error code 0
