@@ -7,7 +7,7 @@ section .data
 
 section .bss
 	
-output: resb 256 
+output: resb 32
 
 ; Code goes in the text section
 section .text
@@ -22,10 +22,11 @@ _start:
 	jmp Usage	     ; display text exit	
 
 Continue:
-	mov rsi, qword [rbp+8*3] ; 3 => pushed rbp, program, ${ arg1 }
-	call atoi 		 ; ecx = atoi(arg1)
+	mov rdi, qword [rbp+8*3] ; 3 => pushed rbp |  program, ${ arg1 }, ...
+	call atoi 		 ; rax = atoi(arg1)
+	mov rcx, rax
 	
-	mov rax, rax ; first
+	mov rax, 0   ; first
 	mov rbx, 1   ; second
 	xor rdx, rdx ; dx = first + second
 fibo:	
@@ -38,12 +39,13 @@ fibo:
 
 print_answer:
 	mov rdi, output
+	mov rsi, rdx
 	call toString
 	;; cout answer
-	mov eax,4            ; 'write' system call = 4
-	mov ebx,1            ; file descriptor 1 = STDOUT
-	mov ecx, output        ; string to write
-	;dx - from toString
+	mov rdx, rax          ; rax - string length
+	mov eax, 4            ; 'write' system call = 4
+	mov ebx, 1            ; file descriptor 1 = STDOUT
+	mov ecx, output       ; string to write
 	int 80h              ; call the kernel
 	jmp Exit
 
@@ -55,6 +57,7 @@ Usage:
 	int 80h              ; call the kernel
 
 Exit:
+	; mov rsp, rbp       ; clear local variables
 	pop rbp
 
 	mov eax,1            ; 'exit' system call
@@ -62,21 +65,21 @@ Exit:
 	int 80h              ; call the kernel
 
 ;; input 
-;;	: dx - positive natural numbers
-;;	: rsi - string argument terminated using '\0'
+;;	: rdi - string to number source
 ; return
-;;	: ecx - unsinged value
+;;	: rax - unsinged value
 atoi:	
-	xor ecx, ecx
+	push rbx  		;; function calling rules - preserved reg's
+	xor rax, rax
 	atoi_ok:
-		mov bl, [rsi]
+		mov bl, [rdi]
 		cmp bl, 0
 		je atoi_exit   ;; end of string
-		inc rsi
+		inc rdi
 
 		sub bl, '0'
-		imul ecx, 10
-		add ecx, ebx
+		imul rax, 10
+		add eax, ebx
 
 		cmp bl, 9
 		jbe atoi_ok
@@ -91,15 +94,18 @@ atoi:
 		int 80h              	    ; call the kernel
 		jmp Exit
 	atoi_exit:
+		pop rbx 
 		ret
 
 ;; input 
-;;	: dx - positive natural numbers
 ;;	: rdi - string destination buffer
+;;	: rsi - positive natural numbers
 ;; return
-;;	: dx - string length?
+;;	: rax - string length
 toString:
-	mov rax, rdx
+	push rbx;
+
+	mov rax, rsi
 	xor rcx, rcx ;; lenght counter
 	mov rbx, 10
 	
@@ -134,5 +140,6 @@ toString:
 		dec rdi
 		jmp swap
 exitToString:
-	mov edx, ecx
+	mov eax, ecx
+	pop rbx
 	ret
