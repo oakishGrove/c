@@ -43,26 +43,26 @@ print_answer:
 	call toString
 	;; cout answer
 	mov rdx, rax          ; rax - string length
-	mov eax, 4            ; 'write' system call = 4
-	mov ebx, 1            ; file descriptor 1 = STDOUT
-	mov ecx, output       ; string to write
-	int 80h              ; call the kernel
+	mov eax, 1            ; 'write' system call = 1 in x86 4
+	mov rdi, 1            ; file descriptor 1 = STDOUT
+	mov rsi, output       ; string to write
+	syscall              ; call the kernel
 	jmp Exit
 
 Usage:
-	mov eax,4            ; 'write' system call = 4
-	mov ebx,1            ; file descriptor 1 = STDOUT
-	mov ecx,usage        ; string to write
-	mov edx,usageLen     ; length of string to write
-	int 80h              ; call the kernel
+	mov rax,1            ; 'write' system call = 1
+	mov rdi,1            ; file descriptor 1 = STDOUT
+	mov rsi,usage        ; string to write
+	mov rdx,usageLen     ; length of string to write
+	syscall             ; call the kernel
 
 Exit:
-	; mov rsp, rbp       ; clear local variables
+	; mov rsp, rbp           ; clear local variables
 	pop rbp
 
-	mov eax,1            ; 'exit' system call
-	mov ebx,0            ; exit with error code 0
-	int 80h              ; call the kernel
+	mov eax, 60            ; 'exit' system call
+	mov rdi, 0             ; exit with error code 0
+	syscall                ; call the kernel
 
 ;; input 
 ;;	: rdi - string to number source
@@ -87,11 +87,11 @@ atoi:
 		;; current char is not digit,
 		;; display error and exit
 	atoi_error:
-		mov eax,4        	    ; 'write' system call = 4
-		mov ebx,1 	            ; file descriptor 1 = STDOUT
-		mov ecx, invalidArgument        ; string to write
-		mov edx, invalidArgumentLen     ; length of string to write
-		int 80h              	    ; call the kernel
+		mov rax, 1        	    ; 'write' system call = 1
+		mov rdi, 1 	            ; file descriptor 1 = STDOUT
+		mov rsi, invalidArgument        ; string to write
+		mov rdx, invalidArgumentLen     ; length of string to write
+		syscall              	    ; call the kernel
 		jmp Exit
 	atoi_exit:
 		pop rbx 
