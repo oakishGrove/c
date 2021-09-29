@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
-#include <unistd.h>
 #include <ctype.h>
 
 char* findStringCase(const char* source, const char* contains) {
     if (contains != NULL && source != NULL ) {
 
         int index = 0;
-        int containsLength = strlen(contains);
+        unsigned int containsLength = strlen(contains);
         int matchedChars = 0;
         int containsIndex = 0;
         while (source[index] != '\0') {
@@ -29,12 +28,12 @@ char* findStringCase(const char* source, const char* contains) {
 }
 
 
-int appendPath(char **string, int* stringLen, int* stringSize, char *data) {
+void appendPath(char **string, int stringLen, int* stringSize, char *data) {
     if (string == NULL || *string == NULL || data == NULL)
-        return 0;
+        exit(0);
 
     unsigned long dataLen = strlen(data);
-    if (dataLen + stringLen + 1 > stringSize) {
+    if (dataLen + stringLen + 1 > *stringSize) {
         char *temp = (char *) malloc(*stringSize * 2);
         if (temp) {
             strcpy(temp, *string);
@@ -45,15 +44,14 @@ int appendPath(char **string, int* stringLen, int* stringSize, char *data) {
             exit(1);
     }
 
-    *(*string + (*stringLen)++) = '/';
+    *(*string + stringLen++) = '/';
     for (int i = 0; i < dataLen; ++i) {
-        *(*string + (*stringLen)++) = *data++;
+        *(*string + stringLen++) = *data++;
     }
 
-    for (int i = *stringLen; i < *stringSize; ++i) {
+    for (int i = stringLen; i < *stringSize; ++i) {
         *(*string + i) = '\0';
     }
-    return 1;
 }
 
 
@@ -66,32 +64,23 @@ int searchForDirHelper(char** path, char* target, int pathLen, int *pathSize) {
         struct dirent *obj;
         while ((obj = readdir(directory)) != NULL) {
 
-            int tempOld = oldPathLen;
-            appendPath(path, &tempOld, pathSize, "");
             if (strcmp(obj->d_name, ".") == 0
                     || strcmp(obj->d_name, "..") == 0 )
                 continue;
 
-            int d_nameLen = strlen(obj->d_name);
-
-            printf("Looking: %s //\\\\ %s\n", *path, obj->d_name);
-
+            (*path)[oldPathLen] = '\0';
+//            printf("Looking: %s //\\\\ %s\n", *path, obj->d_name);
 
             if (findStringCase(obj->d_name, target)) {
-//                appendPath(path, &pathLen, pathSize, obj->d_name);
-                printf("Cheating: %s\n____________\n", *path);
-                // result + obj->name
-//                return 1;
-                found = 1;
+                printf("||%s/%s\n", *path, obj->d_name);
             } else {
 
                 if (obj->d_type == 4) {
-                    int tempOldPathLen = oldPathLen;
-                    appendPath(path, &tempOldPathLen, pathSize, obj->d_name);
-//                    searchForDirHelper(path, target, resultLen, resultSize);
-                    int found = searchForDirHelper(path, target, tempOldPathLen, pathSize);
-//                    if (found)
-//                        break;
+//                    int tempOldPathLen = oldPathLen;
+//                    printf("PATH: %s\n", *path);
+                    appendPath(path, pathLen, pathSize, obj->d_name);
+//                    printf("diff: %d %d %s\n", oldPathLen, tempOldPathLen, *path);
+                    searchForDirHelper(path, target, strlen(*path), pathSize);
                 }
             }
         }
@@ -124,7 +113,7 @@ int main(int argc, char** argv) {
 //        printf("2 params expected");
 //        return 0;
 //    }
-    char* inPath = searchForDir("..", "main.c");
+    char* inPath = searchForDir("../../../..", "main.c");
     if (inPath != NULL) {
         printf("%s\n", inPath);
         free(inPath);

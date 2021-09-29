@@ -15,8 +15,6 @@ stdio.h
 -
 dirent.h
 -
-unistd.h
--
 ctype.h
 -
 
