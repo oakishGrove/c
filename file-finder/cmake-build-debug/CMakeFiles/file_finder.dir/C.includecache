@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/oak/projects/c/file-finder/main.c
+string.h
+-
+stdlib.h
+-
+stdio.h
+-
+dirent.h
+-
+unistd.h
+-
+ctype.h
+-
+

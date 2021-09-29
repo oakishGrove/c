@@ -1,0 +1,1 @@
+/bin/gcc -g CMakeFiles/file_finder.dir/main.c.o -o file_finder 

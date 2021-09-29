@@ -1,0 +1,3 @@
+/home/oak/projects/c/file-finder/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/oak/projects/c/file-finder/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/oak/projects/c/file-finder/cmake-build-debug/CMakeFiles/file_finder.dir
