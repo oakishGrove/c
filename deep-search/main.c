@@ -4,6 +4,16 @@
 #include <dirent.h>
 #include <ctype.h>
 
+/* 
+ * Performs search of file or folder.
+ *
+ * TODO: mb
+ *   [ ] word distance toleration
+ *   [ ] exact keyword search flag
+ *   [ ] change search root dir
+ *   [ ] look for folders only
+*/
+
 char* findStringCase(const char* source, const char* contains) {
     if (contains != NULL && source != NULL ) {
 
@@ -56,10 +66,10 @@ void clearAppendedPath(char *string, int len, const int *pPathSize) {
     }
 }
 
-char** populateFileNames(int* fileNamesCount, char* dirPath) {
+char** populateFileNames(int* fileNamesSize, int *fileNamesCount, char* dirPath) {
 
-    char** fileNames = malloc(sizeof(char *) * *fileNamesCount);
-    for(int i = 0; i < *fileNamesCount; ++i) {
+    char** fileNames = malloc(sizeof(char *) * *fileNamesSize);
+    for(int i = 0; i < *fileNamesSize; ++i) {
         *(fileNames + i) = calloc(NAME_MAX, sizeof (char));
     }
     if (fileNames == NULL)
@@ -73,13 +83,13 @@ char** populateFileNames(int* fileNamesCount, char* dirPath) {
             if (strcmp(obj->d_name, ".") == 0
                 || strcmp(obj->d_name, "..") == 0 )
                 continue;
-            if (fileNamesIndex >= *fileNamesCount) {
-                *fileNamesCount *= 2;
-                fileNames = realloc(fileNames, sizeof(char *) * *fileNamesCount);
+            if (fileNamesIndex >= *fileNamesSize) {
+                *fileNamesSize *= 2;
+                fileNames = realloc(fileNames, sizeof(char *) * *fileNamesSize);
                 if (fileNames == NULL) {
                     exit(1);
                 }
-                for (int i = fileNamesIndex; i < *fileNamesCount; ++i) {
+                for (int i = fileNamesIndex; i < *fileNamesSize; ++i) {
                     *(fileNames + i) = calloc(NAME_MAX, sizeof (char));
                 }
             }
@@ -88,6 +98,7 @@ char** populateFileNames(int* fileNamesCount, char* dirPath) {
         }
         closedir(directory);
     }
+    *fileNamesCount = fileNamesIndex;
     return fileNames;
 }
 
@@ -101,13 +112,16 @@ void freeFileNames(char **fileNames, int fileNamesCount) {
 
 // each string in array{fileNames} first byte means file type{struct dirent -> d_type}
 void searchForDirHelper(char** path, char* target, int pathLen, int *pathSize) {
-    int fileNamesCount = 32;
-//    int fileNamesCount = 32;
-    char** fileNames = populateFileNames(&fileNamesCount, *path);
+    static long counter = 0;
+    int fileNamesSize = 32;
+    int fileNamesCount = 0;
+    char** fileNames = populateFileNames(&fileNamesSize, &fileNamesCount, *path);
 
+
+    counter++;
     for (int i = 0; i < fileNamesCount; ++i) {
         if (findStringCase(fileNames[i], target)) {
-            printf("||%s/%s\n", *path, fileNames[i]+1);
+            printf("{%d}||%s/%s\n", counter, *path, fileNames[i]+1);
         } else {
             if (*(*(fileNames+i)+0) == 4) {
                 appendPath(path, pathLen, pathSize, *(fileNames+i)+1);
@@ -116,7 +130,7 @@ void searchForDirHelper(char** path, char* target, int pathLen, int *pathSize) {
             }
         }
     }
-    freeFileNames(fileNames, fileNamesCount);
+    freeFileNames(fileNames, fileNamesSize);
 }
 
 
