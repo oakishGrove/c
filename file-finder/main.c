@@ -48,17 +48,16 @@ void appendPath(char **string, int stringLen, int* stringSize, char *data) {
     for (int i = 0; i < dataLen; ++i) {
         *(*string + stringLen++) = *data++;
     }
+}
 
-    for (int i = stringLen; i < *stringSize; ++i) {
-        *(*string + i) = '\0';
+void clearAppendedPath(char *string, int len, int *pPathSize) {
+    for ( int i = len; i < *pPathSize; ++i ) {
+        string[i] = '\0';
     }
 }
 
-
-int searchForDirHelper(char** path, char* target, int pathLen, int *pathSize) {
+void searchForDirHelper(char** path, char* target, int pathLen, int *pathSize) {
     DIR *directory = NULL;
-    int oldPathLen = pathLen;
-    int found = 0;
     if ((directory = opendir(*path)) != NULL) {
 
         struct dirent *obj;
@@ -68,43 +67,35 @@ int searchForDirHelper(char** path, char* target, int pathLen, int *pathSize) {
                     || strcmp(obj->d_name, "..") == 0 )
                 continue;
 
-            (*path)[oldPathLen] = '\0';
-//            printf("Looking: %s //\\\\ %s\n", *path, obj->d_name);
-
             if (findStringCase(obj->d_name, target)) {
                 printf("||%s/%s\n", *path, obj->d_name);
             } else {
-
                 if (obj->d_type == 4) {
-//                    int tempOldPathLen = oldPathLen;
-//                    printf("PATH: %s\n", *path);
                     appendPath(path, pathLen, pathSize, obj->d_name);
-//                    printf("diff: %d %d %s\n", oldPathLen, tempOldPathLen, *path);
                     searchForDirHelper(path, target, strlen(*path), pathSize);
+                    clearAppendedPath(*path, pathLen, pathSize);
                 }
             }
         }
 
         closedir(directory);
     }
-    return found;
 }
 
-char* searchForDir(char* path, char* target) {
+
+void searchForDir(char* path, char* target) {
     if (path && target) {
         unsigned long pathLen = strlen(path);
-        int resultSize = 128 <= pathLen ? pathLen * 2 : 128;
-        char *result = malloc(resultSize);
-        *result = '\0';
+        int searchPathSize = 128 <= pathLen ? pathLen * 2 : 128;
+        char *searchPath = malloc(searchPathSize);
 
-        if (result != NULL) {
-            strcpy(result, path);
-            if (searchForDirHelper(&result, target, pathLen, &resultSize)) {
-                return result;
-            }
+        if (searchPath != NULL) {
+            *searchPath = '\0';
+            strcpy(searchPath, path);
+            searchForDirHelper(&searchPath, target, pathLen, &searchPathSize);
+            free(searchPath);
         }
     }
-    return NULL;
 }
 
 int main(int argc, char** argv) {
@@ -113,11 +104,7 @@ int main(int argc, char** argv) {
 //        printf("2 params expected");
 //        return 0;
 //    }
-    char* inPath = searchForDir("../../../..", "main.c");
-    if (inPath != NULL) {
-        printf("%s\n", inPath);
-        free(inPath);
-    }
+    searchForDir("..", "main.c");
 
 //    searchForDir("..", argv[1]);
     //#include <sys/stat.h>
