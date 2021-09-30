@@ -123,7 +123,6 @@ toString:
 
 		;; rdi points to string terminator
 		mov [rdi], byte 10
-		mov [rdi + 1], byte 0
 		inc rcx
 				
 		dec rdi ;; rdi points to last char of string
