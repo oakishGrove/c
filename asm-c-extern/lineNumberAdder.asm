@@ -4,10 +4,11 @@ MAX_INPUT_BUFFER equ 255
 
 section .data
 
-extern myStringLength
+extern printErrorOverflown
 extern printUsage
 extern puts
 extern readLine
+extern digitCount
 
 section .text
 
@@ -22,7 +23,7 @@ main:
                                ; 4 - bufferLen
                                ; 256 - buffer
     push r12
-
+    push r13
     ;; correct number of program arguments
     cmp rdi, 3
     je openInputFile
@@ -46,16 +47,23 @@ openInputFile:
     ;; create desitination file
     mov rax, 85         ; create file
     mov rdi, [r12+16]
-    mov rsi,  0400q | 0200q; read, write premission
+    mov rsi,  0400q | 0200q; read, write user premissions
     syscall
     cmp rax, 0
     jl closeSourceBeforeExiting
     mov [rbp+4], eax
 
     ;; set line counter = 0
-    mov [rbp+8], dword 0
+    mov [rbp+8], dword 1
 
+mainLoop:
 
+    ;;calculate digit count of line counter
+    xor rdi, rdi
+    mov edi, dword [rbp + 8]
+    call digitCount
+    mov r13, rax
+    inc rax ;; leave space for ' '
 
 ;           rdi - file fd
 ;           rsi - rez buffer
@@ -64,49 +72,75 @@ openInputFile:
     mov edi, dword [rbp]
     mov rsi, rbp
     add rsi, 20
+    add rsi, rax ; space for line number
     mov rdx, MAX_INPUT_BUFFER
-    call readLine
-    mov [rbp+16], eax
+    sub rdx, rax
+    call readLine ;; << -----------------
 
-    call readLine
     mov [rbp+16], eax
+    add [rbp+16], dword r13d
+    jo errorOverflown
+    cmp eax, 0
+    jz eofReached
 
+
+    ;; append '\n' to output line
+    mov rdi, rbp
+    add rdi, 20
+    xor rcx, rcx
+    mov ecx, dword [rbp+16] ; input line length including '\0'
+    add rdi, rcx
+    mov [rdi], byte 10
+    inc dword [rbp+16]      ; input line added space for '\n'
+
+    mov ecx, MAX_INPUT_BUFFER
+    cmp ecx, dword [rbp+16]
+    jl correctClose
+    inc rdi
+    mov [rdi], byte 0
+
+
+    ;; write digits chars to beginning of output line
+    mov rcx, r13 ; digit count
+    mov rdi, rbp
+    add rdi, 20
+    add rdi, r13    ; place of last digit
+    mov [rdi], byte ' '
+    dec rdi
+
+
+    mov eax, dword [rbp + 8] ; line counter
+    xor edx, edx
+    mov ebx, 10
+numberLoop:
+    div ebx
+    add edx, '0'
+    mov [rdi], dl
+    dec rdi
+    xor edx, edx
+    loop numberLoop
+
+
+
+    ;; print to file
     mov rax, 1
-    mov rdi, 0
+    xor rdi, rdi
+    mov edi, [rbp+4]
     mov rsi, rbp
     add rsi, 20
-    mov rdx, 7
-    ;xor rdx, rdx
-    ;mov edx, [rbp+16]
+    xor rdx, rdx
+    mov edx, [rbp+16]
     syscall
 
+    inc dword [rbp + 8] ;; increase line counter
+    cmp rax, 0 ;; checking write byte count
+    jg mainLoop
 
-
-
-    mov rax, 1
-    mov rdi, [rbp+4]
-    mov rsi, [rbp+20]
-    mov rdx, [rbp+16]
-    syscall
-;   xor rbx, rbx
-;   mov rdi, [rsi+rbx*8]
-;   call puts
-;
-;   inc rbx
-;   mov rdi, [rsi+rbx*8]
-;   call puts
-;
-
-
-    ;; closing input file??
+correctClose:
+eofReached:
     mov rax, 3
-    mov rdi, [rbp + 0]
+    mov rdi, [rbp]
     syscall
-    ;;closing output file
-    mov rax, 3
-    mov rdi, [rbp + 4]
-    syscall
-    jmp exit
 closeSourceBeforeExiting: ;; counldn't create output file close input
     mov rax, 3
     mov rdi, [rbp]
@@ -115,9 +149,13 @@ closeSourceBeforeExiting: ;; counldn't create output file close input
 couldNotOpenSourceFile: ;; couln't open first file
     jmp exit
 
+errorOverflown:
+    call printErrorOverflown
+    jmp exit
 usage:
     call printUsage
 exit:
+    pop r13
     pop r12
     mov rsp, rbp
     pop rbp

@@ -1,4 +1,3 @@
-
 ;; readLine function
 ;           rdi - file fd
 ;           rsi - rez buffer
@@ -9,64 +8,67 @@
 section .data
     bufferIndex dd 0
     bufferLength dd 0
-    buffer db BUFFER_MAX_SIZE
-;section .bss
-;    buffer resb BUFFER_MAX_SIZE
+    ;buffer db BUFFER_MAX_SIZE
+section .bss
+    buffer resb BUFFER_MAX_SIZE
 
 section .text
     global readLine
 readLine:
-
     push r12
     push r13
     push r14
-    mov r12, rsi
-    mov r13, rdx
+    push r15
 
-    xor rdx, rdx
-    xor r14, r14
-    xor rcx, rcx
-readLineDo: ;; init check
-    mov ecx, [bufferLength]
-    ;movzx rcx, dword [bufferLength]
-    sub ecx, [bufferIndex]
-    jz readLineUpdateBuffer ;; rax = 0 rcx????
+    mov r12, rdi ; input fd
+    mov r13, rsi ; rez buffer
+    mov r14, rdx ; rez max len
+    mov r15, 0   ; write bites
 
-readLineDo1:
-    ;cx = to_end
     xor rcx, rcx
+readLineInitCheck:
     mov ecx, [bufferLength]
     sub ecx, [bufferIndex]
-    cmp rcx, r13
+    jz readLineUpdateBuffer
+;; ------------
+    ;rcx = bufLen - bufIndex
+    cmp rcx, r14
     jge readLineDoElse
     jmp readLineDots
 readLineDoElse: ;; else
-    mov rcx, r13
+    mov rcx, r14
+
 readLineDots: ;;
 
-    mov rbx, rcx
+    mov rbx, rcx  ;; save counter
     mov rsi, buffer
     add esi, dword [bufferIndex]
-    mov rdi, r12
-    add rdi, r14
+    mov rdi, r13
+    add rdi, r15 ;; skip chars writen in previous pass
+    xor rax, rax ;; counts bufferIndex increment
+    xor rdx, rdx
 readLineDotsLoop:
     ;mov rsi, buffer
     mov dl, [rsi]
-    cmp dl, 10 ; '\n'
+    cmp dl, 10 ; '\n' folowing posix standart each lines ends with '\n'
     je readLineOk
-    cmp dl, 0
-    je readLineEof
     mov [rdi], dl
-    inc r14
+    inc r15
     inc rsi
     inc rdi
+    inc rax
     loop readLineDotsLoop
 
-    sub r13, rbx
-    jle readLineExit
-    jmp readLineUpdateBuffer
+    ; didn't found '\n' in first pass
+    sub r14, rbx
+    cmp r14, 0
+    jle readLineSetOF ;;
+    add [bufferIndex], eax
+    jmp readLineInitCheck
 
 
+;outer:
+; <...>
 ;(ecx)to_end = len - index
 ;if (to_end < rez_size)
 ;    rcx = to_end
@@ -80,16 +82,17 @@ readLineDotsLoop:
 
 readLineUpdateBuffer:
     mov rax, 0
+    mov rdi, r12
     mov rsi, buffer
     mov rdx, BUFFER_MAX_SIZE
     syscall
 
     cmp rax, 0
     jl readLineErrorReading
+    je readLineEof
     mov [bufferLength], eax
     mov [bufferIndex], dword 0
-    ; rdi file descriptor
-    jmp readLineDo1
+    jmp readLineInitCheck
 
 
 readLineSetOF:
@@ -99,28 +102,28 @@ readLineErrorReading:
     mov rax, 0xffffffffffffffff
     jmp readLineExit
 
-
 readLineEof:
-    inc r14
-    cmp r14, r13
+    inc r15
+    cmp r15, r14
     je readLineSetOF;; no space for '\0' set OF
-    ; else
-    dec r14
-    ;; set ZF
+
+    add r13, r15
+    mov [r13], byte 0
+    mov rax, r15
     xor rax, rax
-    jmp readLineOkLast
+    jmp readLineExit
 
 readLineOk:
-    inc r14
-    cmp r14, r13
+    inc r15
+    cmp r15, r14
     je readLineSetOF;; no space for '\0' set OF
-    ; else
-    dec r14
 readLineOkLast:
     mov [rdi], byte 0
-    add [bufferIndex], r14
-    mov rax, r14
+    inc rax ;; main loops skips '\n'
+    add [bufferIndex], rax
+    mov rax, r15
 readLineExit:
+    pop r15
     pop r14
     pop r13
     pop r12
