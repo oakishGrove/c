@@ -2,6 +2,5 @@ nasm -f elf64 -g lineNumberAdder.asm
 nasm -f elf64 -g fun.asm
 gcc -c -g functions.c
 gcc -g -no-pie lineNumberAdder.o functions.o fun.o
-
 ./a.out b c
 cat c
