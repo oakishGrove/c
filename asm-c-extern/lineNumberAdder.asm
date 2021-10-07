@@ -17,11 +17,13 @@ main:
     push rbp
     mov rbp, rsp
 
-    sub rsp, 276               ; 4 - inputFd
-                               ; 4 - outputFd
-                               ; 8 line number
-                               ; 4 - bufferLen
-                               ; 256 - buffer
+    sub rsp, 288               ;   -4 4 - inputFd
+                               ;   -8 4 - outputFd
+                               ;  -16 8 - line number
+                               ;  -20 4 - bufferLen
+                               ; -276 256 - buffer
+                               ; 12 - padding for rsp % 16 == 0
+                               ; ..., compiler aligs it befero calls
     push r12
     push r13
     ;; correct number of program arguments
