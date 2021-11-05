@@ -17,7 +17,6 @@ char packet[] = "Mar 4 12:31:43 Teltonika-RUTX11 IN=br-lan OUT=wwan01 MAC=00:00:
 void parseMac(struct pkt_t *pPkt);
 void parsePort(struct pkt_t *pPkt);
 void parseIPs(struct pkt_t *pPkt);
-
 char *ipParserHelper();
 
 void printPacket(struct pkt_t* pkt) {
@@ -27,9 +26,14 @@ void printPacket(struct pkt_t* pkt) {
         sprintf(number, "%02x:", pkt->mac[i]);
         strcat(macStr, number);
     }
+    sprintf(number, "%02x", pkt->mac[5]);
     strcat(macStr, number);
 
-    printf("MAC: %s\nPORT: %d\nIN_ADR: %s\nOUT_ADR: %s", macStr, pkt->port, inet_ntoa(pkt->srcip), inet_ntoa(pkt->dstip));
+
+    printf("MAC: %s\nPORT: %d\nIN_ADR: %s\nOUT_ADR: %s\n", macStr, pkt->port, inet_ntoa(pkt->srcip));
+    printf("TODO: figure out why above line prints nonsense or why OUT_ADR is nil\n");
+    printf("MAC: %s\nPORT: %d\nIN_ADR: %s\n", macStr, pkt->port, inet_ntoa(pkt->srcip));
+    printf("OUT_ADR: %s\n", inet_ntoa(pkt->dstip));
 }
 
 int main() {
@@ -49,10 +53,8 @@ void parseIPs(struct pkt_t *pkt) {
 
     char* dstIp = strstr(packet, "DST");
     spacePos = ipParserHelper("DST");
-    printf("!!!! [%s]", dstIp);
     inet_aton(dstIp+4, &pkt->dstip);
     *spacePos = ' ';
-    puts(inet_ntoa(pkt->dstip));
 }
 
 char *ipParserHelper(char* target) {
@@ -75,25 +77,13 @@ char *ipParserHelper(char* target) {
 }
 
 void parsePort(struct pkt_t *pkt) {
-    char* srcIp = strstr(packet, "SRC");
+    char* srcIp = strstr(packet, "P=");
     if (srcIp == NULL) {
         perror("SRC not found");
         exit(EXIT_FAILURE);
     }
-
-    char* spacePos = srcIp;
-    while(spacePos) {
-        if(*spacePos == ' ') {
-            *spacePos = '\0';
-            break;
-        }
-        ++spacePos;
-    }
-
-    const char* lastDot = strrchr(srcIp+4, '.');
-    int val = atoi(lastDot+1);
+    int val = atoi(srcIp+2);
     pkt->port = val;
-    *spacePos = ' ';
 }
 
 void parseMac(struct pkt_t *pkt) {
