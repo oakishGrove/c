@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/oak/projects/untitled/main.c
+stdio.h
+-
+stdlib.h
+-
+netinet/in.h
+-
+string.h
+-
+arpa/inet.h
+-
+
